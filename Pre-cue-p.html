@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Pre-cue Seizure Prediction </title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #eef2f7; font-family: 'Inter', sans-serif; color: #1a2e3b; min-height: 100vh; }
+    .app-container { width: 100%; background: #ffffff; min-height: 100vh; display: flex; flex-direction: column; }
+    .app-header { background: #ffffff; padding: 1.2rem 1.5rem; border-bottom: 1px solid #e7edf2; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .logo-icon { font-size: 2.2rem; color: #2a9d8f; }
+    .logo-text { font-size: 1.8rem; font-weight: 800; background: linear-gradient(135deg, #176b87, #2a9d8f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .sub { font-size: 0.8rem; color: #6b8c9e; margin-left: auto; }
+    .logout-header-btn { background: #fff0e6; border: none; padding: 6px 12px; border-radius: 40px; font-weight: 500; color: #bc5a2c; cursor: pointer; font-size: 0.8rem; margin-left: 10px; }
+    .page { display: none; padding: 1.5rem; flex: 1; animation: fade 0.2s ease; }
+    .active-page { display: block; }
+    @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .card { background: white; border-radius: 1.8rem; padding: 1.6rem; box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #eef3f8; margin-bottom: 1.2rem; width: 100%; }
+    .title-icon { font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; gap: 12px; margin-bottom: 1.4rem; border-left: 5px solid #2a9d8f; padding-left: 16px; }
+    .input-field, .textarea-field { width: 100%; padding: 1rem 1.2rem; border-radius: 60px; border: 1px solid #d6e3ec; font-size: 1rem; margin: 0.6rem 0 1.2rem; font-family: inherit; background: #fefefe; }
+    .textarea-field { border-radius: 1.5rem; resize: vertical; }
+    .btn { border: none; padding: 0.9rem 1.5rem; border-radius: 60px; font-weight: 600; font-size: 1rem; cursor: pointer; background: #f0f4f9; color: #1f5e7a; transition: 0.2s; }
+    .btn-primary { background: #176b87; color: white; box-shadow: 0 2px 6px rgba(23,107,135,0.2); }
+    .btn-primary:hover { background: #0d556d; transform: translateY(-1px); }
+    .btn-outline { background: transparent; border: 1px solid #cce0e9; }
+    .flex-row { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; margin: 20px 0; }
+    .status-chip { display: inline-flex; align-items: center; gap: 8px; background: #eef3fa; padding: 0.5rem 1.2rem; border-radius: 60px; font-size: 0.95rem; font-weight: 500; }
+    .safe { background: #e0f2e9; color: #1e6f5c; }
+    .warning-chip { background: #fff0e6; color: #bc5a2c; }
+    .countdown-box { background: #fef3e8; border-radius: 2rem; padding: 1.4rem; text-align: center; }
+    .timer-digits { font-family: monospace; font-size: 2.8rem; font-weight: 800; letter-spacing: 3px; color: #bc5a2c; }
+    .toast-msg { font-size: 0.9rem; color: #2a9d8f; margin-top: 12px; background: #eefaf5; padding: 8px 15px; border-radius: 60px; display: inline-block; }
+    .account-row { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid #ecf3f8; font-weight: 600; font-size: 1.05rem; cursor: pointer; transition: 0.1s; }
+    .account-row i { width: 32px; font-size: 1.3rem; color: #176b87; }
+    .inline-notification { background: #2c3e4e; color: white; padding: 12px 18px; border-radius: 60px; margin-bottom: 15px; text-align: center; font-size: 0.9rem; }
+    .toggle-switch { display: flex; justify-content: space-between; align-items: center; margin: 1.2rem 0; font-size: 1.05rem; font-weight: 500; }
+    .switch { position: relative; display: inline-block; width: 58px; height: 32px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cddfe8; transition: 0.3s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%; }
+    input:checked + .slider { background-color: #2a9d8f; }
+    input:checked + .slider:before { transform: translateX(26px); }
+    .bottom-nav { background: #ffffff; border-top: 1px solid #e6edf2; display: flex; justify-content: space-around; padding: 0.9rem 1rem 1rem; position: sticky; bottom: 0; background: rgba(255,255,255,0.96); backdrop-filter: blur(8px); }
+    .bottom-nav.hidden-nav { display: none; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: #86a2b5; cursor: pointer; }
+    .nav-item i { font-size: 1.7rem; }
+    .nav-item.active { color: #2a9d8f; }
+    .home-stack { display: flex; flex-direction: column; gap: 1.5rem; }
+    .feedback-question { margin-bottom: 1.8rem; border-bottom: 1px dashed #e2ecf3; padding-bottom: 1rem; }
+    .feedback-question p { font-weight: 600; margin-bottom: 0.6rem; }
+    .radio-group { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+    .radio-group label { margin-right: 15px; cursor: pointer; font-weight: normal; }
+    hr { margin: 1rem 0; border: none; height: 1px; background: #eef2f6; }
+    small { font-size: 0.8rem; color: #8aa9bc; }
+    .risk-time-badge { background: #f0f7fc; border-radius: 2rem; padding: 0.5rem 1rem; text-align: center; margin: 0.8rem 0; }
+    .contact-badge { background: #eef3fa; border-radius: 40px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; margin: 5px 0; width: 100%; justify-content: space-between; flex-wrap: wrap; }
+    .primary-badge { background: #2a9d8f20; border-left: 3px solid #2a9d8f; }
+    .collapsible-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 10px 0; font-weight: 600; font-size: 1.1rem; border-bottom: 1px solid #eef2f6; margin-bottom: 12px; }
+    .collapsible-content { display: none; padding-top: 12px; }
+    .collapsible-content.open { display: block; }
+    .fa-chevron-down, .fa-chevron-right { transition: 0.2s; }
+    @media (max-width: 500px) { .page { padding: 1rem; } }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <div class="app-header">
+    <i class="fas fa-waveform logo-icon"></i>
+     <img src="precue-logo.png"  style="width: 70px; height: 70px;" alt="Pre-cue Logo" class="logo-img">
+    <span class="logo-text">Pre-cue</span>
+    <div class="sub">Smart Seizure Anticipation</div>
+    <button id="headerLogoutBtn" class="logout-header-btn"><i class="fas fa-sign-out-alt"></i> Log out</button>
+  </div>
+
+  <!-- LOGIN PAGE -->
+  <div id="page-login" class="page active-page">
+    <div class="card">
+      <div class="title-icon"><i class="fas fa-brain"></i> Welcome back</div>
+      <input type="text" id="loginUsername" class="input-field" placeholder="Username" autocomplete="off">
+      <input type="password" id="loginPassword" class="input-field" placeholder="Password">
+      <div class="flex-row" style="justify-content: space-between;">
+        <button id="doLoginBtn" class="btn btn-primary"><i class="fas fa-arrow-right-to-bracket"></i> Log in</button>
+        <button id="gotoForgotBtn" class="btn btn-outline">Forgot password?</button>
+      </div>
+      <div id="loginMsg" class="toast-msg"></div>
+    </div>
+  </div>
+
+  <!-- FORGOT / RESET PAGES -->
+  <div id="page-forgot" class="page"><div class="card"><div class="title-icon"><i class="fas fa-key"></i> Forgot Password</div><input type="email" id="forgotEmail" class="input-field" placeholder="Email address"><button id="sendOtpForgotBtn" class="btn btn-primary">Send OTP Code</button><div id="otpSentMsg" class="toast-msg"></div><hr><button id="backToLoginFromForgot" class="btn btn-outline">Back to Login</button></div></div>
+  <div id="page-reset" class="page"><div class="card"><div class="title-icon"><i class="fas fa-lock"></i> Reset Password</div><input type="password" id="newPwd" class="input-field" placeholder="New Password"><small>Minimum 8 characters</small><input type="password" id="confirmPwd" class="input-field" placeholder="Confirm Password"><button id="resetPwdConfirmBtn" class="btn btn-primary">Reset Password</button><div id="resetErrorMsg" class="toast-msg"></div><button id="backToLoginFromReset" class="btn btn-outline">Back to Login</button></div></div>
+  <div id="page-changed" class="page"><div class="card" style="text-align:center;"><i class="fas fa-check-circle" style="font-size: 3rem; color:#2a9d8f;"></i><h3 style="margin:1rem 0 0.5rem;">Password Changed!</h3><p>Successfully changed your password</p><button id="loginNowSuccessBtn" class="btn btn-primary" style="margin-top:1rem;">Log in Now</button></div></div>
+
+  <!-- HOME -->
+  <div id="page-home" class="page">
+    <div class="card">
+      <div class="title-icon"><i class="fas fa-home"></i> Patient Dashboard</div>
+      <div class="home-stack">
+        <div class="status-chip"><i class="fas fa-wifi"></i> Connection: <strong>Active</strong></div>
+        <div id="homePredictionChip" class="status-chip safe"><i class="fas fa-shield-alt"></i> Monitoring Safely</div>
+        <button id="homeNotifyPhysicianBtn" class="btn btn-primary"><i class="fas fa-user-md"></i> Notify Physician</button>
+        <div><i class="fas fa-chart-simple"></i> Last prediction: Based on personalized risk window</div>
+        <div><i class="fas fa-clock"></i> Next analysis: continuous EEG monitoring</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RISK WINDOW PAGE -->
+  <div id="page-warning" class="page">
+    <div class="card">
+      <div class="title-icon"><i class="fas fa-exclamation-triangle" style="color:#c25d2e;"></i> Risk Window Analysis</div>
+      <div id="currentTimeDisplay" class="risk-time-badge"><i class="far fa-clock"></i> Current time: --:--:--</div>
+      <div id="riskWindowRange" class="risk-time-badge"><i class="fas fa-chart-line"></i> Predicted window: --:-- – --:--</div>
+      <div id="riskStatusMsg" style="font-weight:500; margin: 0.5rem 0;"></div>
+      <div class="countdown-box">
+        <div class="timer-digits" id="countdownTimer">--:--:--</div>
+        <small id="countdownLabel">Time remaining in risk window</small>
+      </div>
+      <div class="flex-row">
+        <button id="silenceWarningBtn" class="btn btn-outline"><i class="fas fa-volume-off"></i> Silence Alarm</button>
+        <button id="reNotifyCaregiverBtn" class="btn btn-primary"><i class="fas fa-bell"></i> Re-notify Primary Caregiver</button>
+        <button id="notifyPhysicianFromWarningBtn" class="btn btn-primary"><i class="fas fa-user-md"></i> Notify Physician</button>
+      </div>
+      <div id="warningStatusMsg" class="toast-msg"></div>
+      <hr>
+      <button id="backToHomeFromWarning" class="btn btn-outline">← Back to Home</button>
+    </div>
+  </div>
+
+  <!-- FEEDBACK -->
+  <div id="page-feedback" class="page">
+    <div class="card">
+      <div class="title-icon"><i class="fas fa-comment-medical"></i> Seizure Experience Feedback</div>
+      <div id="feedbackQuestionsContainer">
+        <div class="feedback-question"><p>1. Did a seizure occur during the predicted risk window?</p><div class="radio-group"><label><input type="radio" name="q1" value="yes"> Yes</label><label><input type="radio" name="q1" value="no"> No</label></div></div>
+        <div class="feedback-question"><p>2. Did you experience any pre-seizure aura?</p><div class="radio-group"><label><input type="radio" name="q2" value="yes"> Yes</label><label><input type="radio" name="q2" value="no"> No</label><label><input type="radio" name="q2" value="unsure"> Unsure</label></div></div>
+        <div class="feedback-question"><p>3. How many seizures occurred?</p><div class="radio-group"><label><input type="radio" name="q3" value="0"> 0</label><label><input type="radio" name="q3" value="1"> 1</label><label><input type="radio" name="q3" value="2+"> 2+</label></div></div>
+        <div class="feedback-question"><p>4. Did you take rescue medication?</p><div class="radio-group"><label><input type="radio" name="q4" value="yes"> Yes</label><label><input type="radio" name="q4" value="no"> No</label></div></div>
+      </div>
+      <button id="submitFeedbackBtn" class="btn btn-primary"><i class="fas fa-save"></i> Submit Feedback</button>
+      <div id="feedbackAnswerMsg" class="toast-msg"></div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT MAIN -->
+  <div id="page-account" class="page">
+    <div class="card">
+      <div class="title-icon"><i class="fas fa-user-circle"></i> Account</div>
+      <div class="account-row" data-page="editProfile"><i class="fas fa-user-pen"></i> Edit Profile</div>
+      <div class="account-row" data-page="seizureHistory"><i class="fas fa-clock-rotate-left"></i> Seizure History & Reports</div>
+      <div class="account-row" data-page="healthDetails"><i class="fas fa-heartbeat"></i> Health Details & Treatment</div>
+      <div class="account-row" data-page="myTeam"><i class="fas fa-users"></i> My Care Team</div>
+      <div class="account-row" data-page="alertSettings"><i class="fas fa-bell"></i> Alert & Risk Window Settings</div>
+      <div class="account-row" id="logoutAccountBtn"><i class="fas fa-sign-out-alt"></i> Log out</div>
+    </div>
+  </div>
+
+  <!-- EDIT PROFILE -->
+  <div id="page-editProfile" class="page"><div class="card"><div class="title-icon"><i class="fas fa-user-edit"></i> Edit Profile</div><input type="text" id="fullName" class="input-field" placeholder="Full Name"><input type="email" id="profileEmail" class="input-field" placeholder="Email"><input type="tel" id="phone" class="input-field" placeholder="Emergency Phone"><button id="saveProfileBtn" class="btn btn-primary">Save Changes</button><div id="profileMsg" class="toast-msg"></div><button class="btn btn-outline backToAccount" style="margin-top:1rem;">← Back to Account</button></div></div>
+  <div id="page-seizureHistory" class="page"><div class="card"><div class="title-icon"><i class="fas fa-chart-line"></i> Seizure Reports</div><div id="seizureLogList"></div><button id="addSeizureRecordBtn" class="btn btn-outline"><i class="fas fa-plus"></i> Add Record</button><button class="btn btn-outline backToAccount" style="margin-top:1rem;">← Back</button><div id="seizureMsg" class="toast-msg"></div></div></div>
+  <div id="page-healthDetails" class="page"><div class="card"><div class="title-icon"><i class="fas fa-notes-medical"></i> Health & Treatment</div><label>Current Medications</label><textarea id="medications" rows="2" class="textarea-field" placeholder="e.g., Lamotrigine 100mg"></textarea><label>Allergies</label><input type="text" id="allergies" class="input-field"><label>Treatment Plan</label><textarea id="treatmentPlan" rows="3" class="textarea-field"></textarea><button id="saveHealthBtn" class="btn btn-primary">Save</button><div id="healthMsg" class="toast-msg"></div><button class="btn btn-outline backToAccount">← Back</button></div></div>
+
+  <!-- MY TEAM with Primary Caregiver selection -->
+  <div id="page-myTeam" class="page">
+    <div class="card">
+      <div class="title-icon"><i class="fas fa-users"></i> My Care Team</div>
+      <h3 style="margin: 1rem 0 0.5rem;"><i class="fas fa-heart"></i> Caregivers (Family)</h3>
+      <div id="caregiversList"></div>
+      <button id="addCaregiverBtn" class="btn btn-outline"><i class="fas fa-plus"></i> Add Caregiver</button>
+      <hr>
+      <h3 style="margin: 1rem 0 0.5rem;"><i class="fas fa-user-md"></i> Physicians</h3>
+      <div id="physiciansList"></div>
+      <button id="addPhysicianBtn" class="btn btn-outline"><i class="fas fa-plus"></i> Add Physician</button>
+      <div id="teamMsg" class="toast-msg"></div>
+      <button class="btn btn-outline backToAccount" style="margin-top:1rem;">← Back to Account</button>
+    </div>
+  </div>
+
+  <!-- ALERT SETTINGS with collapsible RW -->
+  <div id="page-alertSettings" class="page">
+    <div class="card">
+      <div class="title-icon"><i class="fas fa-sliders-h"></i> Alert & Risk Window</div>
+      <div class="toggle-switch"><span><i class="fas fa-volume-up"></i> Sound Alert</span><label class="switch"><input type="checkbox" id="soundCheckbox"><span class="slider"></span></label></div>
+      <div class="toggle-switch"><span><i class="fas fa-vibrate"></i> Vibration</span><label class="switch"><input type="checkbox" id="vibrationCheckbox"><span class="slider"></span></label></div>
+      <hr>
+      <div class="collapsible-header" id="rwCollapsibleHeader">
+        <span><i class="fas fa-hourglass-half"></i> RW (Risk Window Horizon) <i class="fas fa-chevron-right" id="rwChevron"></i></span>
+      </div>
+      <div id="rwCollapsibleContent" class="collapsible-content">
+        <label style="font-weight:600;">Start Time</label>
+        <input type="time" id="riskWindowStart" class="input-field" value="14:00">
+        <label style="font-weight:600;">End Time</label>
+        <input type="time" id="riskWindowEnd" class="input-field" value="18:00">
+        <small>System highlights risk if current time falls between these hours.</small>
+        <button id="saveAlertSettingsBtn" class="btn btn-primary" style="margin-top: 14px;">Save Settings</button>
+        <button id="testSoundBtn" class="btn btn-outline" style="margin-top: 10px;"><i class="fas fa-volume-up"></i> Test Sound (moderate volume)</button>
+      </div>
+      <div id="alertSaveMsg" class="toast-msg"></div>
+      <button class="btn btn-outline backToAccount" style="margin-top:1rem;">← Back to Account</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav" id="bottomNav">
+    <div class="nav-item" data-nav="home"><i class="fas fa-home"></i><span>Home</span></div>
+    <div class="nav-item" data-nav="warning"><i class="fas fa-exclamation-triangle"></i><span>Risk Window</span></div>
+    <div class="nav-item" data-nav="feedback"><i class="fas fa-comment"></i><span>Feedback</span></div>
+    <div class="nav-item" data-nav="account"><i class="fas fa-user"></i><span>Account</span></div>
+  </div>
+</div>
+
+<script>
+  // ---------- SOUND SYSTEM (moderate volume) ----------
+  let audioCtx = null;
+  let soundMuted = false;
+
+  function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  function playEndOfWindowSound() {
+    if (soundMuted) return;
+    const soundPref = localStorage.getItem('soundPref') === 'true';
+    if (!soundPref) return;
+    try {
+      initAudio();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      const gainNode = audioCtx.createGain();
+      gainNode.gain.setValueAtTime(0.3, now);
+      gainNode.connect(audioCtx.destination);
+      
+      const freq = 600;
+      const duration = 0.2;
+      const pause = 0.1;
+      for (let i = 0; i < 3; i++) {
+        const osc = audioCtx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        osc.connect(gainNode);
+        osc.start(now + i * (duration + pause));
+        osc.stop(now + i * (duration + pause) + duration);
+      }
+      const osc2 = audioCtx.createOscillator();
+      osc2.type = 'sine';
+      osc2.frequency.value = 800;
+      osc2.connect(gainNode);
+      osc2.start(now + 1.0);
+      osc2.stop(now + 1.2);
+    } catch(e) { console.warn("Audio play failed", e); }
+  }
+
+  function stopSound() { soundMuted = true; }
+  function resetSoundMute() { soundMuted = false; }
+
+  document.getElementById('testSoundBtn')?.addEventListener('click', () => {
+    const soundPref = localStorage.getItem('soundPref');
+    if (soundPref !== 'true') {
+      showToast('alertSaveMsg', 'Enable Sound Alert first in settings above.', true);
+      return;
+    }
+    playEndOfWindowSound();
+    showToast('alertSaveMsg', '🔊 Testing sound (moderate volume)');
+  });
+
+  // Collapsible RW section
+  const rwHeader = document.getElementById('rwCollapsibleHeader');
+  const rwContent = document.getElementById('rwCollapsibleContent');
+  const rwChevron = document.getElementById('rwChevron');
+  rwHeader.addEventListener('click', () => {
+    rwContent.classList.toggle('open');
+    rwChevron.classList.toggle('fa-chevron-right', !rwContent.classList.contains('open'));
+    rwChevron.classList.toggle('fa-chevron-down', rwContent.classList.contains('open'));
+  });
+
+  // Helper functions
+  function showToast(elId, msg, isError = false) {
+    const el = document.getElementById(elId);
+    if (el) { el.innerHTML = msg; el.style.color = isError ? '#c25d2e' : '#2a9d8f'; setTimeout(() => { if (el) el.innerHTML = ''; }, 3500); }
+  }
+  function showGlobalToast(msg) {
+    const active = document.querySelector('.page.active-page');
+    if (active) { const d = document.createElement('div'); d.className = 'inline-notification'; d.innerText = msg; active.prepend(d); setTimeout(() => d.remove(), 2800); }
+  }
+
+  const pages = { login:'page-login', forgot:'page-forgot', reset:'page-reset', changed:'page-changed', home:'page-home', warning:'page-warning', feedback:'page-feedback', account:'page-account', editProfile:'page-editProfile', seizureHistory:'page-seizureHistory', healthDetails:'page-healthDetails', myTeam:'page-myTeam', alertSettings:'page-alertSettings' };
+  function showPage(pageId) {
+    Object.values(pages).forEach(id => document.getElementById(id).classList.remove('active-page'));
+    document.getElementById(pages[pageId]).classList.add('active-page');
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.nav === pageId));
+    const nav = document.getElementById('bottomNav');
+    if (['login','forgot','reset','changed'].includes(pageId)) nav.classList.add('hidden-nav'); else nav.classList.remove('hidden-nav');
+    if (pageId === 'seizureHistory') renderSeizureHistory();
+    if (pageId === 'myTeam') { renderCaregivers(); renderPhysicians(); }
+    if (pageId === 'editProfile') loadProfile();
+    if (pageId === 'healthDetails') loadHealthDetails();
+    if (pageId === 'warning') { updateRiskWindowUI(); startRiskCountdown(); resetSoundMute(); }
+    if (pageId === 'alertSettings') loadRiskSettingsIntoInputs();
+  }
+
+  // Login / Logout
+  function handleLogin() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (username && password) {
+      localStorage.setItem('currentUser', username);
+      showToast('loginMsg', `✅ Welcome ${username}`);
+      setTimeout(() => showPage('home'), 500);
+    } else {
+      showToast('loginMsg', '❌ Please enter username and password', true);
+    }
+  }
+  function logout() { localStorage.removeItem('currentUser'); showPage('login'); document.getElementById('loginUsername').value = ''; document.getElementById('loginPassword').value = ''; showToast('loginMsg', 'Logged out'); }
+  document.getElementById('doLoginBtn').onclick = handleLogin;
+  document.getElementById('headerLogoutBtn').onclick = logout;
+  document.getElementById('logoutAccountBtn').onclick = logout;
+  document.getElementById('gotoForgotBtn').onclick = () => showPage('forgot');
+  document.getElementById('backToLoginFromForgot').onclick = () => showPage('login');
+  document.getElementById('backToLoginFromReset').onclick = () => showPage('login');
+  document.getElementById('loginNowSuccessBtn').onclick = () => showPage('login');
+  document.getElementById('sendOtpForgotBtn').onclick = () => { const mail = document.getElementById('forgotEmail').value.trim(); if(mail) { showToast('otpSentMsg', `📲 OTP sent to ${mail}`); setTimeout(()=>showPage('reset'),1200); } else showToast('otpSentMsg','Enter email',true); };
+  document.getElementById('resetPwdConfirmBtn').onclick = () => { const np = document.getElementById('newPwd').value, cp = document.getElementById('confirmPwd').value; if(np.length<8) showToast('resetErrorMsg','Min 8 chars',true); else if(np!==cp) showToast('resetErrorMsg','Passwords mismatch',true); else { showToast('resetErrorMsg','✅ Changed!'); setTimeout(()=>showPage('changed'),1000); } };
+  document.querySelectorAll('.backToAccount').forEach(btn => btn.addEventListener('click', () => showPage('account')));
+  document.querySelectorAll('.account-row[data-page]').forEach(row => row.addEventListener('click', () => showPage(row.dataset.page)));
+  document.querySelectorAll('.nav-item').forEach(item => item.addEventListener('click', () => showPage(item.dataset.nav)));
+
+  // Care Team with primary caregiver
+  let caregivers = JSON.parse(localStorage.getItem('caregiversList') || '[{"name":"Mom Nora","relation":"Mother","phone":"555-1234","isPrimary":true}]');
+  let physicians = JSON.parse(localStorage.getItem('physiciansList') || '[{"name":"Dr. Sarah Johnson","specialty":"Neurology","phone":"555-9876"}]');
+  
+  // Ensure at least one primary caregiver
+  function ensurePrimaryCaregiver() {
+    if (!caregivers.some(c => c.isPrimary) && caregivers.length > 0) {
+      caregivers[0].isPrimary = true;
+      localStorage.setItem('caregiversList', JSON.stringify(caregivers));
+    }
+  }
+  
+  function getPrimaryCaregiver() {
+    return caregivers.find(c => c.isPrimary) || (caregivers[0] ? (caregivers[0].isPrimary=true, caregivers[0]) : null);
+  }
+  
+  function notifyPrimaryCaregiver(manual = false) {
+    const primary = getPrimaryCaregiver();
+    if (!primary) {
+      showGlobalToast("⚠️ No primary caregiver set. Please add a caregiver and set as primary.");
+      return false;
+    }
+    const msg = manual ? `📞 Manual notification sent to primary caregiver ${primary.name}.` : `⚠️ AUTO-ALERT: Risk window started! ${primary.name} has been notified.`;
+    showGlobalToast(msg);
+    showToast('warningStatusMsg', `✅ ${primary.name} notified${manual ? ' (re-notify)' : ' (auto)'}`);
+    return true;
+  }
+  
+  function renderCaregivers() {
+    const container = document.getElementById('caregiversList');
+    if (!container) return;
+    if (!caregivers.length) { container.innerHTML = '<p>No caregivers added.</p>'; return; }
+    container.innerHTML = caregivers.map((c, i) => `
+      <div class="contact-badge ${c.isPrimary ? 'primary-badge' : ''}" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+        <span><i class="fas fa-heart"></i> <strong>${c.name}</strong> (${c.relation}) - ${c.phone} ${c.isPrimary ? '⭐ PRIMARY' : ''}</span>
+        <div style="display:flex; gap:8px;">
+          ${!c.isPrimary ? `<button class="btn btn-outline" style="padding:4px 12px;" data-set-primary="${i}">Set as Primary</button>` : ''}
+          <button class="btn btn-outline" style="padding:4px 12px;" data-caregiver-index="${i}">Remove</button>
+        </div>
+      </div>
+    `).join('');
+    document.querySelectorAll('[data-caregiver-index]').forEach(btn => { 
+      btn.addEventListener('click', (e) => { let idx = parseInt(btn.dataset.caregiverIndex); caregivers.splice(idx,1); localStorage.setItem('caregiversList', JSON.stringify(caregivers)); ensurePrimaryCaregiver(); renderCaregivers(); showToast('teamMsg','Caregiver removed'); }); 
+    });
+    document.querySelectorAll('[data-set-primary]').forEach(btn => {
+      btn.addEventListener('click', (e) => { let idx = parseInt(btn.dataset.setPrimary); caregivers.forEach((c,i) => c.isPrimary = (i === idx)); localStorage.setItem('caregiversList', JSON.stringify(caregivers)); renderCaregivers(); showToast('teamMsg','Primary caregiver updated'); });
+    });
+  }
+  
+  function renderPhysicians() {
+    const container = document.getElementById('physiciansList');
+    if (!container) return;
+    if (!physicians.length) { container.innerHTML = '<p>No physicians added.</p>'; return; }
+    container.innerHTML = physicians.map((doc, i) => `
+      <div class="contact-badge">
+        <span><i class="fas fa-user-md"></i> <strong>${doc.name}</strong> (${doc.specialty}) - ${doc.phone}</span>
+        <button class="btn btn-outline" style="padding:4px 12px;" data-physician-index="${i}">Remove</button>
+      </div>
+    `).join('');
+    document.querySelectorAll('[data-physician-index]').forEach(btn => { 
+      btn.addEventListener('click', (e) => { let idx = parseInt(btn.dataset.physicianIndex); physicians.splice(idx,1); localStorage.setItem('physiciansList', JSON.stringify(physicians)); renderPhysicians(); showToast('teamMsg','Physician removed'); }); 
+    });
+  }
+  
+  document.getElementById('addCaregiverBtn')?.addEventListener('click', () => { 
+    let n = prompt("Caregiver name:"); 
+    let r = prompt("Relation:"); 
+    let p = prompt("Phone:"); 
+    if (n && r) { 
+      let newC = { name:n, relation:r, phone:p||'', isPrimary: caregivers.length === 0 }; 
+      caregivers.push(newC); 
+      localStorage.setItem('caregiversList', JSON.stringify(caregivers)); 
+      renderCaregivers(); 
+      showToast('teamMsg','Caregiver added'); 
+    } 
+  });
+  document.getElementById('addPhysicianBtn')?.addEventListener('click', () => { 
+    let n = prompt("Physician name:"); 
+    let s = prompt("Specialty:"); 
+    let p = prompt("Phone:"); 
+    if (n && s) { 
+      physicians.push({ name:n, specialty:s, phone:p||'' }); 
+      localStorage.setItem('physiciansList', JSON.stringify(physicians)); 
+      renderPhysicians(); 
+      showToast('teamMsg','Physician added'); 
+    } 
+  });
+
+  // Notifications
+  function notifyPhysician() {
+    if (physicians.length === 0) { showGlobalToast("⚠️ No physician added."); return false; }
+    showGlobalToast(`📨 Urgent notification sent to physician: ${physicians[0].name}.`);
+    return true;
+  }
+  document.getElementById('homeNotifyPhysicianBtn').onclick = notifyPhysician;
+  document.getElementById('notifyPhysicianFromWarningBtn').onclick = notifyPhysician;
+  
+  // Re-notify caregiver button
+  document.getElementById('reNotifyCaregiverBtn').onclick = () => {
+    if (getPrimaryCaregiver()) {
+      notifyPrimaryCaregiver(true);
+    } else {
+      showGlobalToast("⚠️ No primary caregiver set. Please add a caregiver and set as primary in My Care Team.");
+    }
+  };
+  
+  // Original notify caregiver button (now re-use primary)
+  document.getElementById('notifyCaregiverWarningBtn')?.remove(); // remove old button (we have re-notify)
+  // We'll add re-notify button already, but keep original ID? No, we have reNotifyCaregiverBtn.
+
+  // Risk Window logic with auto-notify on entry
+  let riskInterval = null;
+  let lastEndSoundTriggered = false;
+  let lastInsideState = false; // to detect entry
+  
+  function loadRiskSettingsIntoInputs() { 
+    document.getElementById('riskWindowStart').value = localStorage.getItem('riskWindowStart') || '14:00'; 
+    document.getElementById('riskWindowEnd').value = localStorage.getItem('riskWindowEnd') || '18:00'; 
+  }
+  
+  function saveRiskWindowSettings() { 
+    localStorage.setItem('riskWindowStart', document.getElementById('riskWindowStart').value); 
+    localStorage.setItem('riskWindowEnd', document.getElementById('riskWindowEnd').value); 
+    showToast('alertSaveMsg', 'Risk window saved');
+    updateRiskWindowUI(); 
+    if (document.getElementById('page-warning').classList.contains('active-page')) startRiskCountdown();
+  }
+  
+  let autoNotifyTriggered = false;
+  
+  function updateRiskWindowUI() {
+    const startStr = localStorage.getItem('riskWindowStart') || '14:00';
+    const endStr = localStorage.getItem('riskWindowEnd') || '18:00';
+    const now = new Date();
+    const currentTimeStr = now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    const currentHourMin = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+    document.getElementById('currentTimeDisplay').innerHTML = `<i class="far fa-clock"></i> Current time: ${currentTimeStr}`;
+    document.getElementById('riskWindowRange').innerHTML = `<i class="fas fa-chart-line"></i> Predicted window: ${startStr} – ${endStr}`;
+    const inside = (currentHourMin >= startStr && currentHourMin <= endStr);
+    const statusDiv = document.getElementById('riskStatusMsg');
+    if (inside) statusDiv.innerHTML = '<span style="color:#bc5a2c;"><i class="fas fa-bell"></i> ⚠️ You are INSIDE the predicted risk window. Stay vigilant.</span>';
+    else statusDiv.innerHTML = '<span style="color:#1e6f5c;"><i class="fas fa-check-circle"></i> Outside risk window – low predicted probability.</span>';
+    const homeChip = document.getElementById('homePredictionChip');
+    if (homeChip) {
+      if (inside) { homeChip.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ⚠️ INSIDE RISK WINDOW'; homeChip.classList.remove('safe'); homeChip.classList.add('warning-chip'); }
+      else { homeChip.innerHTML = '<i class="fas fa-shield-alt"></i> Monitoring Safely'; homeChip.classList.add('safe'); homeChip.classList.remove('warning-chip'); }
+    }
+    
+    // Auto-notify primary caregiver when risk window becomes active (once per session)
+    if (inside && !autoNotifyTriggered && !lastInsideState) {
+      autoNotifyTriggered = true;
+      notifyPrimaryCaregiver(false);
+    } else if (!inside) {
+      autoNotifyTriggered = false; // reset for next entry
+    }
+    lastInsideState = inside;
+    return { inside, endStr };
+  }
+  
+  function startRiskCountdown() {
+    if (riskInterval) clearInterval(riskInterval);
+    lastEndSoundTriggered = false;
+    autoNotifyTriggered = false;
+    function tick() {
+      const { inside, endStr } = updateRiskWindowUI();
+      const timerEl = document.getElementById('countdownTimer');
+      if (!inside) { timerEl.innerText = '--:--:--'; document.getElementById('countdownLabel').innerText = 'No active risk window'; lastEndSoundTriggered = false; return; }
+      const now = new Date();
+      const [endHour, endMin] = endStr.split(':').map(Number);
+      const endTime = new Date(now); endTime.setHours(endHour, endMin, 0, 0);
+      if (now >= endTime) {
+        timerEl.innerText = '00:00:00';
+        document.getElementById('countdownLabel').innerText = 'Risk window ended';
+        if (!lastEndSoundTriggered) {
+          lastEndSoundTriggered = true;
+          playEndOfWindowSound();
+        }
+        return;
+      }
+      const diffSec = Math.floor((endTime - now) / 1000);
+      const h = Math.floor(diffSec / 3600);
+      const m = Math.floor((diffSec % 3600) / 60);
+      const s = diffSec % 60;
+      timerEl.innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+      document.getElementById('countdownLabel').innerText = 'Time remaining in risk window';
+    }
+    tick(); riskInterval = setInterval(tick, 1000);
+  }
+  
+  document.getElementById('silenceWarningBtn').onclick = () => { 
+    if (riskInterval) clearInterval(riskInterval); 
+    stopSound(); 
+    showToast('warningStatusMsg','🔇 Alarm silenced (sound stopped, ongoing risk window alerts muted)');
+  };
+  document.getElementById('backToHomeFromWarning').onclick = () => showPage('home');
+  document.getElementById('saveAlertSettingsBtn').onclick = () => { localStorage.setItem('soundPref', document.getElementById('soundCheckbox').checked); localStorage.setItem('vibPref', document.getElementById('vibrationCheckbox').checked); saveRiskWindowSettings(); };
+  document.getElementById('soundCheckbox').checked = localStorage.getItem('soundPref') === 'true';
+  document.getElementById('vibrationCheckbox').checked = localStorage.getItem('vibPref') === 'true';
+
+  // Feedback
+  document.getElementById('submitFeedbackBtn').onclick = () => {
+    const q1 = document.querySelector('input[name="q1"]:checked')?.value;
+    if (!q1) { showToast('feedbackAnswerMsg', 'Please answer question 1', true); return; }
+    const q2 = document.querySelector('input[name="q2"]:checked')?.value;
+    const q3 = document.querySelector('input[name="q3"]:checked')?.value;
+    const q4 = document.querySelector('input[name="q4"]:checked')?.value;
+    const feedbackData = { timestamp: new Date().toISOString(), q1, q2, q3, q4 };
+    let history = JSON.parse(localStorage.getItem('feedbackHistory') || '[]');
+    history.push(feedbackData);
+    localStorage.setItem('feedbackHistory', JSON.stringify(history));
+    showToast('feedbackAnswerMsg', '✅ Feedback saved. Thank you.');
+    document.querySelectorAll('#feedbackQuestionsContainer input[type="radio"]').forEach(r => r.checked = false);
+  };
+
+  // Profile, seizure, health
+  function loadProfile() { document.getElementById('fullName').value = localStorage.getItem('profile_name') || ''; document.getElementById('profileEmail').value = localStorage.getItem('profile_email') || ''; document.getElementById('phone').value = localStorage.getItem('profile_phone') || ''; }
+  document.getElementById('saveProfileBtn').onclick = () => { localStorage.setItem('profile_name', document.getElementById('fullName').value); localStorage.setItem('profile_email', document.getElementById('profileEmail').value); localStorage.setItem('profile_phone', document.getElementById('phone').value); showToast('profileMsg','Profile saved'); };
+  
+  let seizureRecords = JSON.parse(localStorage.getItem('seizureRecords') || '[]');
+  function renderSeizureHistory() {
+    const container = document.getElementById('seizureLogList');
+    if (!container) return;
+    if (!seizureRecords.length) { container.innerHTML = '<p>No seizure records yet.</p>'; return; }
+    container.innerHTML = seizureRecords.map((rec, i) => `
+      <div style="border-bottom:1px solid #ececec; padding:12px 0;">
+        <strong>${rec.date}</strong> - ${rec.duration}s<br>
+        <small>Notes: ${rec.notes || '—'}</small>
+      </div>
+    `).join('');
+  }
+  document.getElementById('addSeizureRecordBtn')?.addEventListener('click',()=>{ let date=prompt('Date (YYYY-MM-DD):'); let dur=prompt('Duration (seconds):'); let notes=prompt('Notes:'); if(date&&dur){ seizureRecords.push({date,duration:dur,notes:notes||''}); localStorage.setItem('seizureRecords',JSON.stringify(seizureRecords)); renderSeizureHistory(); showToast('seizureMsg','Record added'); } });
+  
+  function loadHealthDetails() { document.getElementById('medications').value = localStorage.getItem('medications') || ''; document.getElementById('allergies').value = localStorage.getItem('allergies') || ''; document.getElementById('treatmentPlan').value = localStorage.getItem('treatmentPlan') || ''; }
+  document.getElementById('saveHealthBtn')?.addEventListener('click',()=>{ localStorage.setItem('medications', document.getElementById('medications').value); localStorage.setItem('allergies', document.getElementById('allergies').value); localStorage.setItem('treatmentPlan', document.getElementById('treatmentPlan').value); showToast('healthMsg','Health info saved'); });
+
+  // Initialize
+  loadRiskSettingsIntoInputs();
+  ensurePrimaryCaregiver();
+  renderCaregivers();
+  renderPhysicians();
+  if (localStorage.getItem('currentUser')) localStorage.removeItem('currentUser');
+  showPage('login');
+</script>
+</body>
+</html>
